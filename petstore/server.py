@@ -28,3 +28,11 @@ app = FastAPI()
 def list_pets(limit: Optional[int] = None) -> List[Pet]:
     _pets = list(pets.values())
     return _pets if not limit else _pets[:limit]
+
+
+@app.get("/pets/{pet_id}")
+def get_pet(pet_id: int) -> Pet:
+    pet = pets.get(pet_id)
+    if not pet:
+        raise HTTPException(status_code=404)
+    return pet
