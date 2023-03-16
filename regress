@@ -1,0 +1,93 @@
+#!/bin/bash
+
+readonly usage=$(cat <<EOF
+Script to run regression tests against an API.
+
+Dependencies
+------------
+* httpie: https://httpie.io
+* jq:     https://stedolan.github.io/jq/
+
+Description
+-----------
+It has three modes:
+* test:   the queries are run against the API server and the output saved to tests/out.
+* check:  checks the contents of \`tests/out\` against \`tests/expected\`.
+* attest: saves the contents of \`tests/out\` as \`tests/expected\`.
+
+Usage
+-----
+1: test
+Runs the queries in \`tests/queries\` against the API server,
+and the responses are saved in \`tests/out\`.
+
+> ./regress test
+
+2: check
+Compares responses in \`tests/out\` against expected ones in \`tests/expected\`
+
+> ./regress check
+3: attest
+
+Only run this when responses in \`tests/out\` are what you expect
+They are going to be copied in \`tests/expected\` to check for regressions
+In the future.
+
+> ./regress attest
+EOF
+         )
+
+_test() {
+  content=$(cat tests/queries/$1)
+  $content | jq > "tests/out/$1.json"
+}
+
+test_all() {
+  for q in tests/queries/*; do
+    _test $(basename $q)
+  done
+}
+
+_check () {
+  f=$(basename $1)
+  delta=$(diff tests/{out,expected}/$f)
+
+  if [ "$delta" != "" ]
+  then
+    echo "$f"
+    echo "$delta"
+    exit 1
+  else
+    echo "ok: $f"
+  fi
+}
+
+check_all () {
+  for f in tests/expected/*.json; do
+    _check $f
+  done
+}
+
+attest_all() {
+  rm tests/expected/*.json
+  for f in tests/out/*.json; do
+    cp "$f" "tests/expected/$(basename $f)"
+  done
+}
+
+case $1 in
+  test)
+    test_all
+  ;;
+  check)
+    check_all
+  ;;
+  attest)
+    attest_all
+  ;;
+  *)
+    echo "Unknown option $1"
+    echo ""
+    echo "$usage"
+  ;;
+esac
