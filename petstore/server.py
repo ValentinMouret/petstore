@@ -31,8 +31,8 @@ def list_pets(limit: Optional[int] = None) -> List[Pet]:
 
 
 @app.get("/pets/{pet_id}")
-def get_pet(pet_id: int) -> Pet:
+def get_pet(pet_id: int) -> List[Pet]:
     pet = pets.get(pet_id)
     if not pet:
         raise HTTPException(status_code=404)
-    return pet
+    return [pet]
